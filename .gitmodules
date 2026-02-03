@@ -79,6 +79,7 @@
 [submodule "glslang"]
     path = externals/glslang
     url = https://github.com/KhronosGroup/glslang
+	branch = android-multiplayer-fix
 [submodule "vma"]
     path = externals/vma
     url = https://github.com/GPUOpen-LibrariesAndSDKs/VulkanMemoryAllocator
