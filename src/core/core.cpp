@@ -680,6 +680,8 @@ void System::Reset() {
     // This is needed as we don't currently support proper app jumping.
     if (auto apt = Service::APT::GetModule(*this)) {
         restore_deliver_arg = apt->GetAppletManager()->ReceiveDeliverArg();
+        restore_sys_menu_arg = apt->GetAppletManager()->GetSysMenuArg();
+        restore_wireless_reboot_info = apt->GetWirelessRebootInfoBuffer();
     }
     if (auto plg_ldr = Service::PLGLDR::GetService(*this)) {
         restore_plugin_context = plg_ldr->GetPluginLoaderContext();
