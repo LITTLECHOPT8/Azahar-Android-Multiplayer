@@ -29,8 +29,8 @@ public:
 
     explicit Socket(const std::string& host, u16 port, u8 pad_index, u32 client_id,
                     SocketCallback callback)
-        : callback(std::move(callback)), timer(io_service),
-          socket(io_service, udp::endpoint(udp::v4(), 0)), client_id(client_id),
+        : callback(std::move(callback)), timer(io_context),
+          socket(io_context, udp::endpoint(udp::v4(), 0)), client_id(client_id),
           pad_index(pad_index) {
         boost::system::error_code ec{};
         auto ipv4 = boost::asio::ip::make_address_v4(host, ec);
@@ -43,11 +43,11 @@ public:
     }
 
     void Stop() {
-        io_service.stop();
+        io_context.stop();
     }
 
     void Loop() {
-        io_service.run();
+        io_context.run();
     }
 
     void StartSend(const clock::time_point& from) {
