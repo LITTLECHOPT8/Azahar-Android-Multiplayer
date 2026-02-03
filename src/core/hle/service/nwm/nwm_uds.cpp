@@ -427,7 +427,7 @@ void NWM_UDS::StartConnectionSequence(const MacAddress& server) {
         auth_request.type = WifiPacket::PacketType::Authentication;
     }
 
-    SendPacket(auth_response);
+    SendPacket(auth_request);
 }
 
 void NWM_UDS::SendAssociationResponseFrame(const MacAddress& address) {
