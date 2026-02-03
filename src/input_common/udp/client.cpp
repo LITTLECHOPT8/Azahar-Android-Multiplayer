@@ -107,10 +107,11 @@ private:
         StartSend(timer.expiry());
     }
 
-    SocketCallback callback;
-    boost::asio::io_service io_service;
-    boost::asio::basic_waitable_timer<clock> timer;
-    udp::socket socket;
+   SocketCallback callback;
+   boost::asio::io_context io_context;
+   boost::asio::basic_waitable_timer<clock> timer;
+   udp::socket socket;
+
 
     u32 client_id{};
     u8 pad_index{};
