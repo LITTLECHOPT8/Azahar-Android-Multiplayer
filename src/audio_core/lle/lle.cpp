@@ -121,7 +121,7 @@ static u8 PipeIndexToSlotIndex(u8 pipe_index, PipeDirection direction) {
 }
 
 struct DspLle::Impl final {
-    Impl(Core::Timing& timing, bool multithread) : core_timing(timing), multithread(multithread) {
+    Impl(Core::Timing& timing, bool multithread) : core_timing(timing), multithread(multithread), teakra{}   {
         teakra_slice_event = core_timing.RegisterEvent(
             "DSP slice", [this](u64, int late) { TeakraSliceEvent(static_cast<u64>(late)); });
     }
@@ -189,12 +189,12 @@ struct DspLle::Impl final {
     }
 
     u8* GetDspDataPointer(u32 baddr) {
-        auto& memory = teakra.GetDspMemory();
+        auto* memory = teakra.GetDspMemory();
         return &memory[DspDataOffset + baddr];
     }
 
     const u8* GetDspDataPointer(u32 baddr) const {
-        auto& memory = teakra.GetDspMemory();
+        auto* memory = teakra.GetDspMemory();
         return &memory[DspDataOffset + baddr];
     }
 
@@ -312,9 +312,10 @@ struct DspLle::Impl final {
         teakra.Reset();
 
         Dsp1 dsp(buffer);
-        auto& dsp_memory = teakra.GetDspMemory();
-        u8* program = dsp_memory.data();
-        u8* data = dsp_memory.data() + DspDataOffset;
+        auto* dsp_memory = teakra.GetDspMemory();
+        u8* program = dsp_memory;
+        u8* data = dsp_memory + DspDataOffset;
+
         for (const auto& segment : dsp.segments) {
             if (segment.memory_type == SegmentType::ProgramA ||
                 segment.memory_type == SegmentType::ProgramB) {
@@ -403,9 +404,10 @@ void DspLle::PipeWrite(DspPipe pipe_number, std::span<const u8> buffer) {
     impl->WritePipe(static_cast<u8>(pipe_number), buffer);
 }
 
-std::array<u8, Memory::DSP_RAM_SIZE>& DspLle::GetDspMemory() {
+u8* DspLle::GetDspMemory() {
     return impl->teakra.GetDspMemory();
 }
+
 
 void DspLle::SetInterruptHandler(
     std::function<void(Service::DSP::InterruptType type, DspPipe pipe)> handler) {
