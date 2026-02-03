@@ -87,7 +87,8 @@ public:
     virtual void PipeWrite(DspPipe pipe_number, std::span<const u8> buffer) = 0;
 
     /// Returns a reference to the array backing DSP memory
-    virtual std::array<u8, Memory::DSP_RAM_SIZE>& GetDspMemory() = 0;
+    virtual u8* GetDspMemory() = 0;
+
 
     /// Sets the handler for the interrupts we trigger
     virtual void SetInterruptHandler(
