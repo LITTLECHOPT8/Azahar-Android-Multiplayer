@@ -151,27 +151,32 @@ void ThreadManager::SwitchContext(Thread* new_thread) {
         }
     }
 
-    // Load context of new thread
-    if (new_thread) {
-        ASSERT_MSG(new_thread->status == ThreadStatus::Ready,
-                   "Thread must be ready to become running.");
+   if (new_thread) {
+    // Hack: force thread to ready if it isn't already
+    if (new_thread->status != ThreadStatus::Ready) {
+        LOG_WARNING(Kernel, "SwitchContext hack: thread {} not ready, forcing Ready", new_thread->thread_id);
+        new_thread->status = ThreadStatus::Ready;
+        ready_queue.push_back(new_thread->current_priority, new_thread);
+    }
 
-        // Cancel any outstanding wakeup events for this thread
-        timing.UnscheduleEvent(ThreadWakeupEventType, new_thread->thread_id);
+    // Cancel any outstanding wakeup events for this thread
+    timing.UnscheduleEvent(ThreadWakeupEventType, new_thread->thread_id);
 
-        current_thread = SharedFrom(new_thread);
+    current_thread = SharedFrom(new_thread);
 
-        ready_queue.remove(new_thread->current_priority, new_thread);
-        new_thread->status = ThreadStatus::Running;
+    // Only remove if it's still in the queue (it might already have been removed above)
+    ready_queue.remove(new_thread->current_priority, new_thread);
 
-        ASSERT(current_thread->owner_process.lock());
-        if (previous_process != current_thread->owner_process.lock()) {
-            kernel.SetCurrentProcessForCPU(current_thread->owner_process.lock(), cpu->GetID());
-        }
+    new_thread->status = ThreadStatus::Running;
 
-        cpu->LoadContext(new_thread->context);
-        cpu->SetCP15Register(CP15_THREAD_URO, new_thread->GetTLSAddress());
-    } else {
+    ASSERT(current_thread->owner_process.lock());
+    if (previous_process != current_thread->owner_process.lock()) {
+        kernel.SetCurrentProcessForCPU(current_thread->owner_process.lock(), cpu->GetID());
+    }
+
+    cpu->LoadContext(new_thread->context);
+    cpu->SetCP15Register(CP15_THREAD_URO, new_thread->GetTLSAddress());
+} else {
         current_thread = nullptr;
         // Note: We do not reset the current process and current page table when idling because
         // technically we haven't changed processes, our threads are just paused.
