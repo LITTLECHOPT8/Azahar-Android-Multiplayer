@@ -111,7 +111,7 @@ public:
         case Region::VRAM:
             return vram.get();
         case Region::DSP:
-            return dsp->GetDspMemory().data();
+            return dsp->GetDspMemory();
         case Region::FCRAM:
             return fcram.get();
         case Region::N3DS:
@@ -126,7 +126,7 @@ public:
         case Region::VRAM:
             return vram.get();
         case Region::DSP:
-            return dsp->GetDspMemory().data();
+            return dsp->GetDspMemory();
         case Region::FCRAM:
             return fcram.get();
         case Region::N3DS:
