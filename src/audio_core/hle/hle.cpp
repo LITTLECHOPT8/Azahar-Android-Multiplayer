@@ -284,9 +284,10 @@ void DspHle::Impl::PipeWrite(DspPipe pipe_number, std::span<const u8> buffer) {
     }
 }
 
-std::array<u8, Memory::DSP_RAM_SIZE>& DspHle::Impl::GetDspMemory() {
-    return dsp_memory.raw_memory;
+u8* DspHle::Impl::GetDspMemory() {
+    return dsp_memory.raw_memory.data();
 }
+
 
 void DspHle::Impl::SetInterruptHandler(
     std::function<void(Service::DSP::InterruptType type, DspPipe pipe)> handler) {
@@ -454,9 +455,10 @@ void DspHle::PipeWrite(DspPipe pipe_number, std::span<const u8> buffer) {
     impl->PipeWrite(pipe_number, buffer);
 }
 
-std::array<u8, Memory::DSP_RAM_SIZE>& DspHle::GetDspMemory() {
+u8* DspHle::GetDspMemory() {
     return impl->GetDspMemory();
 }
+
 
 void DspHle::SetInterruptHandler(
     std::function<void(Service::DSP::InterruptType type, DspPipe pipe)> handler) {
