@@ -702,6 +702,7 @@ void Module::APTInterface::AppletUtility(Kernel::HLERequestContext& ctx) {
         // Command 0x6 (TryLockTransition) expects a boolean return value indicating
         // whether the attempt succeeded. Since we don't implement any of the transition
         // locking stuff yet, fake a success result to avoid app crashes.
+        
         out[0] = true;
     }
 

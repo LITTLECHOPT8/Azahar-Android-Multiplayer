@@ -18,6 +18,7 @@
 #include "network/network_settings.h"
 #include "ui_direct_connect.h"
 
+
 enum class ConnectionType : u8 { TraversalServer, IP };
 
 DirectConnectWindow::DirectConnectWindow(Core::System& system_, QWidget* parent)
@@ -90,7 +91,8 @@ void DirectConnectWindow::Connect() {
             room_member->Join(ui->nickname->text().toStdString(),
                               Service::CFG::GetConsoleIdHash(system),
                               ui->ip->text().toStdString().c_str(), port, 0,
-                              Network::NoPreferredMac, ui->password->text().toStdString().c_str());
+                              Service::CFG::GetConsoleMacAddress(system),
+                              ui->password->text().toStdString().c_str());
         }
     });
     watcher->setFuture(f);
