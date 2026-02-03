@@ -235,8 +235,7 @@ void NWM_UDS::HandleEAPoLPacket(const Network::WifiPacket& packet) {
         node_info[node_id - 1] = node;
         network_info.total_nodes++;
 
-          node_info[node_id - 1] = node;
-            network_info.total_nodes++;
+          
 
        node_map[packet.transmitter_address].node_id = node.network_node_id;
             node_map[packet.transmitter_address].connected = true;
@@ -489,7 +488,7 @@ void NWM_UDS::HandleAuthenticationFrame(const Network::WifiPacket& packet) {
             auth_response.type = WifiPacket::PacketType::Authentication;
             node_map[packet.transmitter_address].connected = false;
         }
-        SendPacket(auth_request);
+        SendPacket(auth_response);
 
         SendAssociationResponseFrame(packet.transmitter_address);
     }
