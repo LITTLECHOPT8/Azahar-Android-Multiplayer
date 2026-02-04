@@ -649,7 +649,6 @@ ResultVal<std::size_t> CIAFile::Write(u64 offset, std::size_t length, bool flush
 }
 
 Result CIAFile::PrepareToImportContent(const FileSys::TitleMetadata& tmd) {
-
     // Create any other .app folders which may not exist yet
     std::string app_folder;
     auto main_content_path = GetTitleContentPath(media_type, tmd.GetTitleID(),
@@ -670,9 +669,13 @@ Result CIAFile::PrepareToImportContent(const FileSys::TitleMetadata& tmd) {
 
     if (container.GetTitleMetadata().HasEncryptedContent(from_cdn ? nullptr
                                                                   : container.GetHeader())) {
-                                                                      if (tmd.GetTitleID() == 0x0004013000002802) {
-    decryption_authorized = true;
-}
+        u64 tid = tmd.GetTitleID();
+        u32 high_tid = static_cast<u32>(tid >> 32);
+
+        // Authorize all DLP titles automatically
+        if (high_tid == 0x00040130) {
+            decryption_authorized = true;
+        }
 
         if (!decryption_authorized) {
             LOG_ERROR(Service_AM, "Blocked unauthorized encrypted CIA installation.");
@@ -688,7 +691,6 @@ Result CIAFile::PrepareToImportContent(const FileSys::TitleMetadata& tmd) {
                 }
             } else {
                 LOG_ERROR(Service_AM, "Could not read title key from ticket for encrypted CIA.");
-                // TODO: Correct error code.
                 return FileSys::ResultFileNotFound;
             }
         }
@@ -697,8 +699,7 @@ Result CIAFile::PrepareToImportContent(const FileSys::TitleMetadata& tmd) {
                  "Title has no encrypted content, skipping initializing decryption state.");
     }
 
-    //install_state = CIAInstallState::TMDLoaded;
-
+    install_state = CIAInstallState::TMDLoaded;
     return ResultSuccess;
 }
 
