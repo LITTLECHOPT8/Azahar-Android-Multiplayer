@@ -697,7 +697,7 @@ Result CIAFile::PrepareToImportContent(const FileSys::TitleMetadata& tmd) {
                  "Title has no encrypted content, skipping initializing decryption state.");
     }
 
-    install_state = CIAInstallState::TMDLoaded;
+    //install_state = CIAInstallState::TMDLoaded;
 
     return ResultSuccess;
 }
