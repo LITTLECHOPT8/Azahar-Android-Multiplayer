@@ -492,7 +492,7 @@ Result CIAFile::WriteTitleMetadata(std::span<const u8> tmd_data, std::size_t off
     // will be the same plus one, (ie 00000001.tmd), both will be kept until
     // the install is finalized and old contents can be discarded.
     if (FileUtil::Exists(GetTitleMetadataPath(media_type, tmd.GetTitleID()))) {
-        is_update = true;
+        is_update = false;
     }
 
     std::string tmd_path = GetTitleMetadataPath(media_type, tmd.GetTitleID(), is_update);
