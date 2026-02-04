@@ -614,8 +614,9 @@ void NWM_UDS::Shutdown(Kernel::HLERequestContext& ctx) {
     LOG_DEBUG(Service_NWM, "called");
 }
 
-void NWM_UDS::RecvBeaconBroadcastData(Kernel::HLERequestContext& ctx) {
-    IPC::RequestParser rp(ctx);
+
+
+
 
     u32 out_buffer_size = rp.Pop<u32>();
 
@@ -631,6 +632,7 @@ void NWM_UDS::RecvBeaconBroadcastData(Kernel::HLERequestContext& ctx) {
 
     // end scan input struct
 
+
     u32 wlan_comm_id = rp.Pop<u32>();
     u32 id = rp.Pop<u32>();
     // From 3dbrew:
@@ -643,12 +645,6 @@ void NWM_UDS::RecvBeaconBroadcastData(Kernel::HLERequestContext& ctx) {
     ASSERT(out_buffer.GetSize() == out_buffer_size);
 
     std::size_t cur_buffer_size = sizeof(BeaconDataReplyHeader);
-
-    // on a real 3ds this is about 0.38 seconds
-    static constexpr std::chrono::nanoseconds UDSBeaconScanInterval{300000000};
-
-    input_event = ctx.SleepClientThread("uds::RecvBeaconBroadcastData", UDSBeaconScanInterval,
-                                             std::make_shared<ThreadCallback>(0xF));
 
     // Retrieve all beacon frames that were received from the desired mac address.
     auto beacons = GetReceivedBeacons(mac_address);
@@ -714,7 +710,6 @@ ResultVal<std::shared_ptr<Kernel::Event>> NWM_UDS::Initialize(
 
     return connection_status_event;
 }
-
 
 void NWM_UDS::InitializeWithVersion(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx);
