@@ -235,7 +235,7 @@ void NWM_UDS::HandleEAPoLPacket(const Network::WifiPacket& packet) {
         node_info[node_id - 1] = node;
         network_info.total_nodes++;
 
-          
+
 
        node_map[packet.transmitter_address].node_id = node.network_node_id;
             node_map[packet.transmitter_address].connected = true;
@@ -305,7 +305,7 @@ void NWM_UDS::HandleEAPoLPacket(const Network::WifiPacket& packet) {
         }
 
         // We're now connected, signal the application
-       
+
         connection_status.status_change_reason = NetworkStatusChangeReason::ConnectionEstablished;
         // Some games require ConnectToNetwork to block, for now it doesn't
         // If blocking is implemented this lock needs to be changed,
@@ -614,9 +614,8 @@ void NWM_UDS::Shutdown(Kernel::HLERequestContext& ctx) {
     LOG_DEBUG(Service_NWM, "called");
 }
 
-
-
-
+void NWM_UDS::RecvBeaconBroadcastData(Kernel::HLERequestContext& ctx) {
+    IPC::RequestParser rp(ctx);
 
     u32 out_buffer_size = rp.Pop<u32>();
 
@@ -1310,7 +1309,7 @@ private:
     friend class boost::serialization::access;
 };
 
-void NWM_UDS::ConnectToNetwork(Kernel::HLERequestContext& ctx, u16 command_id,
+        void NWM_UDS::ConnectToNetwork(Kernel::HLERequestContext& ctx, u16 command_id,
                                std::span<const u8> network_info_buffer, u8 connection_type,
                                std::vector<u8> passphrase) {
     network_info = {};
