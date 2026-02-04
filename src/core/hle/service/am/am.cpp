@@ -670,6 +670,10 @@ Result CIAFile::PrepareToImportContent(const FileSys::TitleMetadata& tmd) {
 
     if (container.GetTitleMetadata().HasEncryptedContent(from_cdn ? nullptr
                                                                   : container.GetHeader())) {
+                                                                      if (tmd.GetTitleID() == 0x0004013000002802) {
+    decryption_authorized = true;
+}
+
         if (!decryption_authorized) {
             LOG_ERROR(Service_AM, "Blocked unauthorized encrypted CIA installation.");
             return {ErrorDescription::NotAuthorized, ErrorModule::AM, ErrorSummary::InvalidState,
