@@ -17,6 +17,7 @@
 #include "core/hle/kernel/process.h"
 #include "core/hle/kernel/thread.h"
 #include "core/memory.h"
+#include "common/logging/log.h"
 
 SERIALIZE_EXPORT_IMPL(Kernel::MappedBufferContext)
 
@@ -126,6 +127,14 @@ Result TranslateCommandBuffer(Kernel::KernelSystem& kernel, Memory::MemorySystem
 
             // Note: The real kernel doesn't seem to have any error recovery mechanisms for this
             // case.
+            LOG_DEBUG(Service_IPC,
+          "StaticBuffer mismatch: buffer_id={} src_size={} dst_size={} src_addr={:08X} dst_addr={:08X}",
+          bufferInfo.buffer_id,
+          bufferInfo.size,
+          target_buffer.descriptor.size,
+          static_buffer_src_address,
+          target_buffer.address);
+
             ASSERT_MSG(target_buffer.descriptor.size >= data.size(),
                        "Static buffer data is too big");
 
