@@ -127,13 +127,14 @@ Result TranslateCommandBuffer(Kernel::KernelSystem& kernel, Memory::MemorySystem
 
             // Note: The real kernel doesn't seem to have any error recovery mechanisms for this
             // case.
-            LOG_DEBUG(Service_IPC,
+           LOG_DEBUG(Common::Log::Class::log_class,
           "StaticBuffer mismatch: buffer_id={} src_size={} dst_size={} src_addr={:08X} dst_addr={:08X}",
-          bufferInfo.buffer_id,
-          bufferInfo.size,
-          target_buffer.descriptor.size,
-          static_buffer_src_address,
-          target_buffer.address);
+          static_cast<u32>(bufferInfo.buffer_id),
+          static_cast<u32>(bufferInfo.size),
+          static_cast<u32>(target_buffer.descriptor.size),
+          static_cast<u32>(static_buffer_src_address),
+          static_cast<u32>(target_buffer.address));
+
 
             ASSERT_MSG(target_buffer.descriptor.size >= data.size(),
                        "Static buffer data is too big");
