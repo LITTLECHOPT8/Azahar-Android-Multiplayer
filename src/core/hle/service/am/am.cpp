@@ -492,7 +492,7 @@ Result CIAFile::WriteTitleMetadata(std::span<const u8> tmd_data, std::size_t off
     // will be the same plus one, (ie 00000001.tmd), both will be kept until
     // the install is finalized and old contents can be discarded.
     if (FileUtil::Exists(GetTitleMetadataPath(media_type, tmd.GetTitleID()))) {
-        is_update = false;
+        is_update = true;
     }
 
     std::string tmd_path = GetTitleMetadataPath(media_type, tmd.GetTitleID(), is_update);
@@ -649,6 +649,7 @@ ResultVal<std::size_t> CIAFile::Write(u64 offset, std::size_t length, bool flush
 }
 
 Result CIAFile::PrepareToImportContent(const FileSys::TitleMetadata& tmd) {
+
     // Create any other .app folders which may not exist yet
     std::string app_folder;
     auto main_content_path = GetTitleContentPath(media_type, tmd.GetTitleID(),
@@ -669,14 +670,6 @@ Result CIAFile::PrepareToImportContent(const FileSys::TitleMetadata& tmd) {
 
     if (container.GetTitleMetadata().HasEncryptedContent(from_cdn ? nullptr
                                                                   : container.GetHeader())) {
-        u64 tid = tmd.GetTitleID();
-        u32 high_tid = static_cast<u32>(tid >> 32);
-
-        // Authorize all DLP titles automatically
-        if (high_tid == 0x00040130) {
-            decryption_authorized = true;
-        }
-
         if (!decryption_authorized) {
             LOG_ERROR(Service_AM, "Blocked unauthorized encrypted CIA installation.");
             return {ErrorDescription::NotAuthorized, ErrorModule::AM, ErrorSummary::InvalidState,
@@ -691,6 +684,7 @@ Result CIAFile::PrepareToImportContent(const FileSys::TitleMetadata& tmd) {
                 }
             } else {
                 LOG_ERROR(Service_AM, "Could not read title key from ticket for encrypted CIA.");
+                // TODO: Correct error code.
                 return FileSys::ResultFileNotFound;
             }
         }
@@ -700,6 +694,7 @@ Result CIAFile::PrepareToImportContent(const FileSys::TitleMetadata& tmd) {
     }
 
     install_state = CIAInstallState::TMDLoaded;
+
     return ResultSuccess;
 }
 
@@ -3141,8 +3136,15 @@ void Module::Interface::BeginImportProgramTemporarily(Kernel::HLERequestContext&
     // Create our CIAFile handle for the app to write to, and while the app writes Citra will store
     // contents out to sdmc/nand
     const FileSys::Path cia_path = {};
-    auto file = std::make_shared<Service::FS::File>(
-        am->system.Kernel(), std::make_unique<CIAFile>(am->system, FS::MediaType::NAND), cia_path);
+     std::shared_ptr<Service::FS::File> file;
+    {
+        auto cia_file = std::make_unique<CIAFile>(am->system, FS::MediaType::NAND);
+
+        AuthorizeCIAFileDecryption(cia_file.get(), ctx);
+
+        file = std::make_shared<Service::FS::File>(
+            am->system.Kernel(), std::move(cia_file), cia_path);
+    }
 
     am->cia_installing = true;
 
