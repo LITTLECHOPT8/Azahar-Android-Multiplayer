@@ -101,51 +101,46 @@ Result TranslateCommandBuffer(Kernel::KernelSystem& kernel, Memory::MemorySystem
             cmd_buf[i++] = src_process->process_id;
             break;
         }
-        case IPC::DescriptorType::StaticBuffer: {
-            IPC::StaticBufferDescInfo bufferInfo{descriptor};
-            VAddr static_buffer_src_address = cmd_buf[i];
+    case IPC::DescriptorType::StaticBuffer: {
+    IPC::StaticBufferDescInfo bufferInfo{descriptor};
+    VAddr static_buffer_src_address = cmd_buf[i];
 
-            std::vector<u8> data(bufferInfo.size);
-            memory.ReadBlock(*src_process, static_buffer_src_address, data.data(), data.size());
+    std::vector<u8> data(bufferInfo.size);
+    memory.ReadBlock(*src_process, static_buffer_src_address, data.data(), data.size());
 
-            // Grab the address that the target thread set up to receive the response static buffer
-            // and write our data there. The static buffers area is located right after the command
-            // buffer area.
-            struct StaticBuffer {
-                IPC::StaticBufferDescInfo descriptor;
-                VAddr address;
-            };
+    struct StaticBuffer {
+        IPC::StaticBufferDescInfo descriptor;
+        VAddr address;
+    };
 
-            static_assert(sizeof(StaticBuffer) == 8, "StaticBuffer struct has incorrect size.");
+    static_assert(sizeof(StaticBuffer) == 8, "StaticBuffer struct has incorrect size.");
 
-            StaticBuffer target_buffer;
+    StaticBuffer target_buffer;
 
-            u32 static_buffer_offset = IPC::COMMAND_BUFFER_LENGTH * sizeof(u32) +
-                                       sizeof(StaticBuffer) * bufferInfo.buffer_id;
-            memory.ReadBlock(*dst_process, dst_address + static_buffer_offset, &target_buffer,
-                             sizeof(target_buffer));
+    u32 static_buffer_offset = IPC::COMMAND_BUFFER_LENGTH * sizeof(u32) +
+                               sizeof(StaticBuffer) * bufferInfo.buffer_id;
+    memory.ReadBlock(*dst_process, dst_address + static_buffer_offset, &target_buffer,
+                     sizeof(target_buffer));
 
-            // Note: The real kernel doesn't seem to have any error recovery mechanisms for this
-            // case.
-       
+    const u32 dst_size = target_buffer.descriptor.size;
+    const u32 src_size = static_cast<u32>(data.size());
 
-           const u32 dst_size = target_buffer.descriptor.size;
-            const u32 src_size = static_cast<u32>(data.size());
+    // If the target buffer is clearly invalid or zero-sized, behave as if no static buffer is set.
+    if (dst_size == 0 ||
+        !memory.IsValidVirtualAddress(*dst_process, target_buffer.address)) {
+        cmd_buf[i++] = 0;
+        break;
+    }
 
-            // Optional: keep the assert in non-Android / debug builds only
-            // ASSERT_MSG(dst_size >= src_size, "Static buffer data is too big");
+    const u32 copy_size = std::min(dst_size, src_size);
+    if (copy_size > 0) {
+        memory.WriteBlock(*dst_process, target_buffer.address, data.data(), copy_size);
+    }
 
-            // Clamp to the destination size to avoid overrunning the target buffer.
-            const u32 copy_size = std::min(dst_size, src_size);
+    cmd_buf[i++] = target_buffer.address;
+    break;
+}
 
-            if (copy_size > 0) {
-                memory.WriteBlock(*dst_process, target_buffer.address, data.data(), copy_size);
-            }
-
-            cmd_buf[i++] = target_buffer.address;
-            break;
-
-        }
         case IPC::DescriptorType::MappedBuffer: {
             IPC::MappedBufferDescInfo descInfo{descriptor};
             VAddr source_address = cmd_buf[i];
