@@ -46,14 +46,22 @@ public:
         // We must copy the entire command buffer *plus* the entire static buffers area, since
         // the translation might need to read from it in order to retrieve the StaticBuffer
         // target addresses.
-        std::array<u32_le, IPC::COMMAND_BUFFER_LENGTH + 2 * IPC::MAX_STATIC_BUFFERS> cmd_buff;
+       // Only copy the command buffer area; leave the static buffers table untouched.
+        std::array<u32_le, IPC::COMMAND_BUFFER_LENGTH> cmd_buff;
+
         Memory::MemorySystem& memory = context->kernel.memory;
+
+        // Read the current command buffer
         memory.ReadBlock(*process, thread->GetCommandBufferAddress(), cmd_buff.data(),
                          cmd_buff.size() * sizeof(u32));
+
+        // Let the HLE context write its reply into the outgoing command buffer
         context->WriteToOutgoingCommandBuffer(cmd_buff.data(), *process);
-        // Copy the translated command buffer back into the thread's command buffer area.
+
+        // Write the modified command buffer back to the thread's command buffer area
         memory.WriteBlock(*process, thread->GetCommandBufferAddress(), cmd_buff.data(),
                           cmd_buff.size() * sizeof(u32));
+
     }
 
     bool SupportsSerialization() {
