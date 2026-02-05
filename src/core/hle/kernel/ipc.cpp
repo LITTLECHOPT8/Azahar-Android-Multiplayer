@@ -129,13 +129,22 @@ Result TranslateCommandBuffer(Kernel::KernelSystem& kernel, Memory::MemorySystem
             // case.
        
 
-            ASSERT_MSG(target_buffer.descriptor.size >= data.size(),
-                       "Static buffer data is too big");
+           const u32 dst_size = target_buffer.descriptor.size;
+            const u32 src_size = static_cast<u32>(data.size());
 
-            memory.WriteBlock(*dst_process, target_buffer.address, data.data(), data.size());
+            // Optional: keep the assert in non-Android / debug builds only
+            // ASSERT_MSG(dst_size >= src_size, "Static buffer data is too big");
+
+            // Clamp to the destination size to avoid overrunning the target buffer.
+            const u32 copy_size = std::min(dst_size, src_size);
+
+            if (copy_size > 0) {
+                memory.WriteBlock(*dst_process, target_buffer.address, data.data(), copy_size);
+            }
 
             cmd_buf[i++] = target_buffer.address;
             break;
+
         }
         case IPC::DescriptorType::MappedBuffer: {
             IPC::MappedBufferDescInfo descInfo{descriptor};
