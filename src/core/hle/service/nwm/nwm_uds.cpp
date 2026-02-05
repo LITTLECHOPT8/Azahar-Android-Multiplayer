@@ -1291,8 +1291,9 @@ public:
 
     void WakeUp(std::shared_ptr<Kernel::Thread> thread, Kernel::HLERequestContext& ctx,
                 Kernel::ThreadWakeupReason reason) {
-        if (!thread || thread->status != ThreadStatus::Ready) {
-        // Thread isn’t ready yet, defer wakeup
+        if (!thread || thread->status != Kernel::ThreadStatus::Ready)
+ {
+        
         LOG_DEBUG(Service_NWM, "Thread not ready, deferring wakeup");
         return;
     }
