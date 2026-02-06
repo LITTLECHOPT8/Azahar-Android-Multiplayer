@@ -1291,12 +1291,7 @@ public:
 
     void WakeUp(std::shared_ptr<Kernel::Thread> thread, Kernel::HLERequestContext& ctx,
                 Kernel::ThreadWakeupReason reason) {
-        if (!thread || thread->status != Kernel::ThreadStatus::Ready)
- {
-        
-        LOG_DEBUG(Service_NWM, "Thread not ready, deferring wakeup");
-        return;
-    }
+        // TODO(B3N30): Add error handling for host full and timeout
         IPC::RequestBuilder rb(ctx, command_id, 1, 0);
         rb.Push(ResultSuccess);
         LOG_DEBUG(Service_NWM, "connection sequence finished");
