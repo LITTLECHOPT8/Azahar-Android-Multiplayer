@@ -153,6 +153,7 @@ void ThreadManager::SwitchContext(Thread* new_thread) {
 
     // Load context of new thread
     if (new_thread) {
+        if (new_thread->status != ThreadStatus::Ready) { LOG_CRITICAL(Kernel, "Thread not ready: tid={} name={} status={}", new_thread->thread_id, new_thread->name, static_cast<int>(new_thread->status)); }
         ASSERT_MSG(new_thread->status == ThreadStatus::Ready,
                    "Thread must be ready to become running.");
 
