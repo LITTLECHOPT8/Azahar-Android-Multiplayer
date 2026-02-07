@@ -201,9 +201,10 @@ void NWM_UDS::HandleAssociationResponseFrame(const Network::WifiPacket& packet) 
 }
 
 void NWM_UDS::HandleEAPoLPacket(const Network::WifiPacket& packet) {
-    std::scoped_lock lock(connection_status_mutex);
-   // std::scoped_lock lock{connection_status_mutex, system.Kernel().GetHLELock()};
+   // auto& kernel = system.Kernel();
 
+   // std::scoped_lock hle_lock(kernel.GetHLELock());
+   
     if (GetEAPoLFrameType(packet.data) == EAPoLStartMagic) {
         if (connection_status.status != NetworkStatus::ConnectedAsHost) {
             LOG_DEBUG(Service_NWM, "Connection sequence aborted, because connection status is {}",
@@ -230,6 +231,9 @@ void NWM_UDS::HandleEAPoLPacket(const Network::WifiPacket& packet) {
         // Get an unused network node id
        auto node = DeserializeNodeInfo(eapol_start.node);
 
+       bool should_broadcast = false;
+       {
+       std::scoped_lock lock(connection_status_mutex);
          if (eapol_start.conn_type == ConnectionType::Client) {
             // Get an unused network node id
             u16 node_id = GetNextAvailableNodeId();
@@ -246,8 +250,10 @@ void NWM_UDS::HandleEAPoLPacket(const Network::WifiPacket& packet) {
             node_map[packet.transmitter_address].node_id = node.network_node_id;
             node_map[packet.transmitter_address].connected = true;
             node_map[packet.transmitter_address].spec = false;
+              should_broadcast = true;
+          
 
-            BroadcastNodeMap();
+          
         } else if (eapol_start.conn_type == ConnectionType::Spectator) {
             node_map[packet.transmitter_address].node_id = NodeIDSpec;
             node_map[packet.transmitter_address].connected = true;
@@ -256,7 +262,8 @@ void NWM_UDS::HandleEAPoLPacket(const Network::WifiPacket& packet) {
             LOG_ERROR(Service_NWM, "Client tried connecting with unknown connection type: 0x{:x}",
                       static_cast<u32>(eapol_start.conn_type));
         }
-
+        }
+         if (should_broadcast) { BroadcastNodeMap(); }
         // Send the EAPoL-Logoff packet.
         using Network::WifiPacket;
         WifiPacket eapol_logoff;
@@ -354,8 +361,9 @@ void NWM_UDS::HandleEAPoLPacket(const Network::WifiPacket& packet) {
 
 void NWM_UDS::HandleSecureDataPacket(const Network::WifiPacket& packet) {
     const auto secure_data = ParseSecureDataHeader(packet.data);
+
     std::scoped_lock lock(connection_status_mutex);
-  //  std::scoped_lock lock{connection_status_mutex, system.Kernel().GetHLELock()};
+  
 
     if (connection_status.status != NetworkStatus::ConnectedAsHost &&
     connection_status.status != NetworkStatus::ConnectedAsClient &&
