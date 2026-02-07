@@ -45,7 +45,7 @@ s64 Timing::GenerateBaseTicks() {
 
 void Timing::UpdateClockSpeed(u32 cpu_clock_percentage) {
     for (auto& timer : timers) {
-        timer->cpu_clock_scale = 100.0 / cpu_clock_percentage;
+        timer->cpu_clock_scale = (100.0 / cpu_clock_percentage) * 0.6666667;
     }
 }
 
