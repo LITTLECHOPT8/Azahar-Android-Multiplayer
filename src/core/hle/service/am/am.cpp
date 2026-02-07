@@ -1307,6 +1307,7 @@ void Module::ScanForTitlesImpl(Service::FS::MediaType media_type) {
                         am_title_list[static_cast<u32>(media_type)].push_back(tid);
                     }
                 } else {
+                    LOG_DEBUG(Service_AM, "Trying {}", GetTitleContentPath(media_type, tid));
                     FileSys::NCCHContainer container(GetTitleContentPath(media_type, tid));
                     if (container.Load() == Loader::ResultStatus::Success) {
                         am_title_list[static_cast<u32>(media_type)].push_back(tid);
