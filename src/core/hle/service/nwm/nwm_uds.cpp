@@ -100,6 +100,8 @@ u16 NWM_UDS::GetNextAvailableNodeId() {
 }
 
 void NWM_UDS::BroadcastNodeMap() {
+    //std::scoped_lock lock(connection_status_mutex);
+
     // Note: This is not how UDS on a 3ds does it but it shouldn't be
     // necessary for citra
     Network::WifiPacket packet;
@@ -199,7 +201,8 @@ void NWM_UDS::HandleAssociationResponseFrame(const Network::WifiPacket& packet) 
 }
 
 void NWM_UDS::HandleEAPoLPacket(const Network::WifiPacket& packet) {
-    std::scoped_lock lock{connection_status_mutex, system.Kernel().GetHLELock()};
+    std::scoped_lock lock(connection_status_mutex);
+   // std::scoped_lock lock{connection_status_mutex, system.Kernel().GetHLELock()};
 
     if (GetEAPoLFrameType(packet.data) == EAPoLStartMagic) {
         if (connection_status.status != NetworkStatus::ConnectedAsHost) {
@@ -348,7 +351,8 @@ void NWM_UDS::HandleEAPoLPacket(const Network::WifiPacket& packet) {
 
 void NWM_UDS::HandleSecureDataPacket(const Network::WifiPacket& packet) {
     const auto secure_data = ParseSecureDataHeader(packet.data);
-    std::scoped_lock lock{connection_status_mutex, system.Kernel().GetHLELock()};
+    std::scoped_lock lock(connection_status_mutex);
+  //  std::scoped_lock lock{connection_status_mutex, system.Kernel().GetHLELock()};
 
     if (connection_status.status != NetworkStatus::ConnectedAsHost &&
     connection_status.status != NetworkStatus::ConnectedAsClient &&
@@ -496,7 +500,8 @@ void NWM_UDS::HandleAuthenticationFrame(const Network::WifiPacket& packet) {
 
 void NWM_UDS::HandleDeauthenticationFrame(const Network::WifiPacket& packet) {
     LOG_DEBUG(Service_NWM, "called");
-    std::scoped_lock lock{connection_status_mutex, system.Kernel().GetHLELock()};
+    std::scoped_lock lock(connection_status_mutex);
+    //std::scoped_lock lock{connection_status_mutex, system.Kernel().GetHLELock()};
 
     if (connection_status.status != NetworkStatus::ConnectedAsHost) {
         LOG_ERROR(Service_NWM, "Got deauthentication frame but we are not the host");
@@ -554,6 +559,9 @@ void NWM_UDS::OnWifiPacketReceived(const Network::WifiPacket& packet) {
     if (!initialized) {
         return;
     }
+    auto& kernel = system.Kernel();
+    std::scoped_lock hle_lock(kernel.GetHLELock());
+
     switch (packet.type) {
     case Network::WifiPacket::PacketType::Beacon:
         HandleBeaconFrame(packet);
@@ -586,6 +594,8 @@ boost::optional<Network::MacAddress> NWM_UDS::GetNodeMacAddress(u16 dest_node_id
         return network_info.host_mac_address;
     }
     // Destination is a specific client
+    std::scoped_lock lock(connection_status_mutex);
+
     auto destination =
         std::find_if(node_map.begin(), node_map.end(), [dest_node_id](const auto& node) {
             return node.second.node_id == dest_node_id && node.second.connected;
@@ -600,6 +610,9 @@ void NWM_UDS::Shutdown(Kernel::HLERequestContext& ctx) {
     IPC::RequestParser rp(ctx);
 
     initialized = false;
+    auto& kernel = system.Kernel();
+    std::scoped_lock hle_lock(kernel.GetHLELock());
+    std::scoped_lock status_lock(connection_status_mutex);
 
     for (auto& bind_node : channel_data) {
         bind_node.second.event->Signal();
