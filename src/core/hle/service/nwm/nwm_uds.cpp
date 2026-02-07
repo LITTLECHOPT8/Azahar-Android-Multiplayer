@@ -362,36 +362,41 @@ void NWM_UDS::HandleEAPoLPacket(const Network::WifiPacket& packet) {
 void NWM_UDS::HandleSecureDataPacket(const Network::WifiPacket& packet) {
     const auto secure_data = ParseSecureDataHeader(packet.data);
 
-    std::scoped_lock lock(connection_status_mutex);
-  
+    // Take a snapshot of what we need under the mutex, then release it.
+    NetworkStatus status;
+    u16 network_node_id;
+    {
+        std::scoped_lock lock(connection_status_mutex);
+        status = connection_status.status;
+        network_node_id = connection_status.network_node_id;
+    }
 
-    if (connection_status.status != NetworkStatus::ConnectedAsHost &&
-    connection_status.status != NetworkStatus::ConnectedAsClient &&
-    connection_status.status != NetworkStatus::ConnectedAsSpectator) {
-    // TODO(B3N30): Handle spectators
-    LOG_DEBUG(Service_NWM, "Ignored SecureDataPacket because connection status is {}",
-              static_cast<u32>(connection_status.status));
-    return;
-}
+    if (status != NetworkStatus::ConnectedAsHost &&
+        status != NetworkStatus::ConnectedAsClient &&
+        status != NetworkStatus::ConnectedAsSpectator) {
+        // TODO(B3N30): Handle spectators
+        LOG_DEBUG(Service_NWM, "Ignored SecureDataPacket because connection status is {}",
+                  static_cast<u32>(status));
+        return;
+    }
 
-
-    if (secure_data.src_node_id == connection_status.network_node_id) {
+    if (secure_data.src_node_id == network_node_id) {
         // Ignore packets that came from ourselves.
         return;
     }
 
-    if (secure_data.dest_node_id != connection_status.network_node_id &&
+    if (secure_data.dest_node_id != network_node_id &&
         secure_data.dest_node_id != BroadcastNetworkNodeId) {
         // The packet wasn't addressed to us, we can only act as a router if we're the host.
         // However, we might have received this packet due to a broadcast from the host, in that
         // case just ignore it.
         if (packet.destination_address != Network::BroadcastMac &&
-            connection_status.status != NetworkStatus::ConnectedAsHost) {
+            status != NetworkStatus::ConnectedAsHost) {
             LOG_ERROR(Service_NWM, "Received packet addressed to others but we're not a host");
             return;
         }
 
-        if (connection_status.status == NetworkStatus::ConnectedAsHost &&
+        if (status == NetworkStatus::ConnectedAsHost &&
             secure_data.dest_node_id != BroadcastNetworkNodeId) {
             // Broadcast the packet so the right receiver can get it.
             // TODO(B3N30): Is there a flag that makes this kind of routing be unicast instead of
@@ -408,22 +413,29 @@ void NWM_UDS::HandleSecureDataPacket(const Network::WifiPacket& packet) {
     ASSERT(!secure_data.is_management);
 
     // TODO(B3N30): Allow more than one bind node per channel.
-    auto channel_info = channel_data.find(secure_data.data_channel);
-    // Ignore packets from channels we're not interested in.
-    if (channel_info == channel_data.end()) {
-        return;
-    }
+    ChannelData* channel = nullptr;
+    {
+        std::scoped_lock lock(connection_status_mutex);
+        auto channel_info = channel_data.find(secure_data.data_channel);
+        // Ignore packets from channels we're not interested in.
+        if (channel_info == channel_data.end()) {
+            return;
+        }
 
-    if (channel_info->second.network_node_id != BroadcastNetworkNodeId &&
-        channel_info->second.network_node_id != secure_data.src_node_id) {
-        return;
+        if (channel_info->second.network_node_id != BroadcastNetworkNodeId &&
+            channel_info->second.network_node_id != secure_data.src_node_id) {
+            return;
+        }
+
+        channel = &channel_info->second;
+        // Add the received packet to the data queue.
+        channel->received_packets.emplace_back(packet.data);
     }
-    // Add the received packet to the data queue.
-    channel_info->second.received_packets.emplace_back(packet.data);
 
     // Signal the data event. We can do this directly because we locked hle_lock
-    channel_info->second.event->Signal();
+    channel->event->Signal();
 }
+
 
 void NWM_UDS::StartConnectionSequence(const MacAddress& server) {
     using Network::WifiPacket;
