@@ -235,12 +235,15 @@ void NWM_UDS::HandleEAPoLPacket(const Network::WifiPacket& packet) {
             u16 node_id = GetNextAvailableNodeId();
             node.network_node_id = node_id;
 
-        node_info[node_id - 1] = node;
-        network_info.total_nodes++;
+            connection_status.node_bitmask |= 1 << (node_id - 1);
+            connection_status.changed_nodes |= 1 << (node_id - 1);
+            connection_status.nodes[node_id - 1] = node.network_node_id;
+            connection_status.total_nodes++;
 
+            node_info[node_id - 1] = node;
+            network_info.total_nodes++;
 
-
-       node_map[packet.transmitter_address].node_id = node.network_node_id;
+            node_map[packet.transmitter_address].node_id = node.network_node_id;
             node_map[packet.transmitter_address].connected = true;
             node_map[packet.transmitter_address].spec = false;
 
